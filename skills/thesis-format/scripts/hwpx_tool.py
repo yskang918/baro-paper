@@ -869,7 +869,7 @@ def hancom():
         pass
     if not registered:
         hwp.Quit()
-        raise SystemExit("한글 보안 모듈이 등록되지 않았습니다. /baro-nonmun:setup 의 '한글 보안 모듈' 단계를 먼저 하세요.")
+        raise SystemExit("한글 보안 모듈이 등록되지 않았습니다. /baro-paper:setup 의 '한글 보안 모듈' 단계를 먼저 하세요.")
     try:
         hwp.XHwpWindows.Item(0).Visible = False
     except Exception:

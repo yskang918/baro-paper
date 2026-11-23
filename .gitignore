@@ -7,3 +7,4 @@ Thumbs.db
 연구/
 config.json
 *.jsonl
+.omc/

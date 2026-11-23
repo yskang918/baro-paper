@@ -1,4 +1,4 @@
-# 바로논문 (baro-nonmun)
+# 바로논문 (baro-paper)
 
 연구 아이디어 하나로 **문헌 조사 → 연구 필요성·근거·연구 세팅 → 할지 말지 판단 → 계획서 → 집필·분석·시각화·심사 → 학교 양식 그대로 한글(hwpx) 파일**까지 이어 주는 Claude Code 플러그인입니다. 연구 시간을 아끼기 위한 도구이고, 결정은 연구자가 합니다. 단계마다 결과 파일을 남기고, 결정할 곳에서 멈추고 묻습니다.
 
@@ -9,14 +9,14 @@
 Claude Code(유료 구독 필요)에서 아래 두 줄을 차례로 입력합니다.
 
 ```
-/plugin marketplace add yskang918/baro-nonmun
-/plugin install baro-nonmun@baro-nonmun
+/plugin marketplace add yskang918/baro-paper
+/plugin install baro-paper@baro-paper
 ```
 
 Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 
 ```
-/baro-nonmun:start
+/baro-paper:start
 ```
 
 처음 실행하면 필요한 것을 점검하고, 동의를 받아 자동으로 설치합니다(파이썬 패키지, 함께 쓰는 플러그인 2개). 파이썬 3.9 이상이 필요합니다. 없으면 설치 방법을 안내합니다.
@@ -41,13 +41,13 @@ Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 
 | 명령 | 용도 |
 |---|---|
-| `/baro-nonmun:start` | 처음부터 또는 이어서 |
-| `/baro-nonmun:setup` | 세팅 점검·설치, KCI 키 등록 |
-| `/baro-nonmun:idea-review` | 할지 말지 판단 보고서만 |
-| `/baro-nonmun:thesis-format` | 학교 양식으로 hwpx 만들기만 |
-| `/baro-nonmun:style-learning` | 내 글·대화 기록으로 문체 프로필 만들기 |
-| `/baro-nonmun:data-analysis` | 자료 분석·그림만 |
-| `/baro-nonmun:thesis-writing-ko` | 한국어 논문 문체·인용·표기 규칙 |
+| `/baro-paper:start` | 처음부터 또는 이어서 |
+| `/baro-paper:setup` | 세팅 점검·설치, KCI 키 등록 |
+| `/baro-paper:idea-review` | 할지 말지 판단 보고서만 |
+| `/baro-paper:thesis-format` | 학교 양식으로 hwpx 만들기만 |
+| `/baro-paper:style-learning` | 내 글·대화 기록으로 문체 프로필 만들기 |
+| `/baro-paper:data-analysis` | 자료 분석·그림만 |
+| `/baro-paper:thesis-writing-ko` | 한국어 논문 문체·인용·표기 규칙 |
 
 ## 학교 양식 (hwpx)
 
@@ -63,12 +63,12 @@ Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 
 ## 선택 설정
 
-- **KCI API 키**(국내 논문 검색 권장): https://open.kci.go.kr 에서 OPEN API 키를 신청하고 `/baro-nonmun:setup`에서 붙여 넣으면 `~/.baro-nonmun/config.json`에 저장됩니다. 없으면 OpenAlex로 국내 학술지 일부를 찾습니다.
+- **KCI API 키**(국내 논문 검색 권장): https://open.kci.go.kr 에서 OPEN API 키를 신청하고 `/baro-paper:setup`에서 붙여 넣으면 `~/.baro-paper/config.json`에 저장됩니다. 없으면 OpenAlex로 국내 학술지 일부를 찾습니다.
 - **한글 보안 모듈**(Windows + 한글, 쪽 그림 대조용): 한글이 자동화로 파일을 열 때 뜨는 허용 창을 생략해 주는 한컴 공식 모듈입니다. 보안 설정이라 사용자가 직접 실행합니다. Claude Code 입력창에 아래처럼 입력합니다(경로는 setup이 알려 줌).
   ```
   ! python "<플러그인 경로>/skills/setup/scripts/setup.py" install-hancom
   ```
-- macOS에서 `python` 명령이 없고 `python3`만 있으면 학술 검색 도구가 켜지지 않을 수 있습니다. `/baro-nonmun:setup`에서 안내합니다.
+- macOS에서 `python` 명령이 없고 `python3`만 있으면 학술 검색 도구가 켜지지 않을 수 있습니다. `/baro-paper:setup`에서 안내합니다.
 
 ## 함께 쓰는 도구와 라이선스
 

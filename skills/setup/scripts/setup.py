@@ -5,7 +5,7 @@
   python setup.py install-python        분석·시각화·문서 읽기 파이썬 패키지 설치(pip --user)
   python setup.py install-plugins       insane-research, academic-research-skills 플러그인 설치
   python setup.py install-hancom        한글 자동화 보안 모듈 설치(Windows+한글, 한컴 공식 저장소에서 받음)
-  python setup.py set-kci-key KEY       KCI Open API 키 저장(~/.baro-nonmun/config.json)
+  python setup.py set-kci-key KEY       KCI Open API 키 저장(~/.baro-paper/config.json)
   python setup.py set-email EMAIL       OpenAlex 예의 요청용 연락처(선택)
 """
 import io
@@ -19,7 +19,7 @@ import urllib.request
 import zipfile
 
 HOME = os.path.expanduser("~")
-CONF_DIR = os.path.join(HOME, ".baro-nonmun")
+CONF_DIR = os.path.join(HOME, ".baro-paper")
 CONF = os.path.join(CONF_DIR, "config.json")
 PY_PKGS = ["pandas", "numpy", "scipy", "statsmodels", "matplotlib", "openpyxl", "pymupdf", "markitdown[pdf,docx,pptx,xlsx]"]
 PLUGINS = [
@@ -197,7 +197,7 @@ def install_hancom():
         return
     dest = os.path.join(CONF_DIR, "hancom")
     os.makedirs(dest, exist_ok=True)
-    data = urllib.request.urlopen(urllib.request.Request(HANCOM_ZIP, headers={"User-Agent": "baro-nonmun"}), timeout=120).read()
+    data = urllib.request.urlopen(urllib.request.Request(HANCOM_ZIP, headers={"User-Agent": "baro-paper"}), timeout=120).read()
     z = zipfile.ZipFile(io.BytesIO(data))
     dll = None
     for n in z.namelist():
@@ -218,7 +218,7 @@ def install_hancom():
     k = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\HNC\HwpAutomation\Modules")
     winreg.SetValueEx(k, "FilePathCheckerModule", 0, winreg.REG_SZ, dll)
     out({"ok": True, "dll": dll, "registry": r"HKCU\Software\HNC\HwpAutomation\Modules\FilePathCheckerModule",
-         "undo": r"레지스트리 값을 지우고 ~/.baro-nonmun/hancom 폴더를 지우면 원래대로 돌아갑니다."})
+         "undo": r"레지스트리 값을 지우고 ~/.baro-paper/hancom 폴더를 지우면 원래대로 돌아갑니다."})
 
 
 def main():

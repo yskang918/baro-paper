@@ -36,12 +36,12 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/setup.py" install-plugins
 ```bash
 python "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/setup.py" set-kci-key "받은키"
 ```
-키는 이 컴퓨터의 `~/.baro-nonmun/config.json`에만 저장된다고 알린다. 저장 뒤 Claude Code를 다시 시작하면 baro-scholar가 새 키를 읽는다.
+키는 이 컴퓨터의 `~/.baro-paper/config.json`에만 저장된다고 알린다. 저장 뒤 Claude Code를 다시 시작하면 baro-scholar가 새 키를 읽는다.
 
 ## 4. 한글 보안 모듈 (선택, Windows + 한글이 있을 때만)
 
 만든 hwpx를 한글 프로그램으로 PDF·쪽 그림으로 그려 견본과 눈으로 대조할 때 필요하다. 없으면 파일 안의 값 대조만 한다.
-이 모듈은 한글이 자동화로 파일을 열 때마다 띄우는 "접근 허용" 창을 생략하게 해 주므로, **사용자가 직접 실행하도록** 안내한다(Claude가 대신 실행하지 않는다). 설명: 한컴 공식 저장소(hancom-io/devcenter-archive)의 보안 모듈을 `~/.baro-nonmun/hancom`에 받고, 사용자 레지스트리(HKCU\Software\HNC\HwpAutomation\Modules)에 등록한다. 되돌리려면 그 값과 폴더를 지우면 된다.
+이 모듈은 한글이 자동화로 파일을 열 때마다 띄우는 "접근 허용" 창을 생략하게 해 주므로, **사용자가 직접 실행하도록** 안내한다(Claude가 대신 실행하지 않는다). 설명: 한컴 공식 저장소(hancom-io/devcenter-archive)의 보안 모듈을 `~/.baro-paper/hancom`에 받고, 사용자 레지스트리(HKCU\Software\HNC\HwpAutomation\Modules)에 등록한다. 되돌리려면 그 값과 폴더를 지우면 된다.
 
 사용자에게 그대로 입력하라고 보여 줄 명령(경로는 실제 경로로 바꿔서):
 ```

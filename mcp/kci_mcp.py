@@ -7,7 +7,7 @@
 - openalex_search : OpenAlex 검색 (키 없이 사용, 국내 학술지 일부 포함)
 - verify_reference: 참고문헌이 실제로 있는지 KCI·OpenAlex·Crossref에서 확인
 
-KCI 키는 환경변수 KCI_API_KEY 또는 ~/.baro-nonmun/config.json 의 "kci_api_key" 에서 읽는다.
+KCI 키는 환경변수 KCI_API_KEY 또는 ~/.baro-paper/config.json 의 "kci_api_key" 에서 읽는다.
 """
 import difflib
 import json
@@ -20,9 +20,9 @@ import xml.etree.ElementTree as ET
 
 SERVER_NAME = "baro-scholar"
 SERVER_VERSION = "0.1.0"
-UA = "baro-nonmun/0.1 (academic research assistant)"
+UA = "baro-paper/0.1 (academic research assistant)"
 KCI_URL = "https://open.kci.go.kr/po/openapi/openApiSearch.kci"
-CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".baro-nonmun", "config.json")
+CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".baro-paper", "config.json")
 
 
 def load_config():
@@ -100,7 +100,7 @@ def parse_kci(xml_bytes):
 
 
 NO_KEY = ("KCI API 키가 없습니다. KCI 검색은 키가 있어야 합니다. "
-          "키 없이 openalex_search 를 쓰거나, /baro-nonmun:setup 에서 키를 등록하세요 "
+          "키 없이 openalex_search 를 쓰거나, /baro-paper:setup 에서 키를 등록하세요 "
           "(발급: https://open.kci.go.kr → OPEN API 키신청).")
 
 

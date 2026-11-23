@@ -1,5 +1,5 @@
 {
-  "name": "baro-nonmun",
+  "name": "baro-paper",
   "owner": {
     "name": "yskang918",
     "url": "https://github.com/yskang918"
@@ -7,7 +7,7 @@
   "description": "바로논문 — 한국어 논문 연구·집필·제출 양식 파이프라인",
   "plugins": [
     {
-      "name": "baro-nonmun",
+      "name": "baro-paper",
       "source": "./",
       "description": "연구 아이디어 → 문헌 → 판단 → 집필·분석 → 학교 양식 hwpx",
       "version": "0.1.0",
