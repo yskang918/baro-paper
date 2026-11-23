@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "baro-scholar": {
+      "command": "python",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/kci_mcp.py"]
+    }
+  }
+}

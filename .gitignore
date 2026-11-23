@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.tmp
+.DS_Store
+Thumbs.db
+# 사용자 연구 자료·설정은 저장소에 넣지 않는다
+연구/
+config.json
+*.jsonl
