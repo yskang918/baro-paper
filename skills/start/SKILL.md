@@ -12,7 +12,11 @@ description: 바로논문 시작. 연구 아이디어 하나로 문헌 조사 �
 ```bash
 python "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/setup.py" check
 ```
-(`python`이 없으면 `python3`.) `todo`에 `install-python`이나 `install-plugins`가 있으면 **setup 스킬**의 절차를 먼저 따른다. 선택 항목(KCI 키, 한글 보안 모듈)은 한 줄로 알리고 넘어간다.
+(`python`이 없으면 `python3`.) `todo`에 `install-python`이나 `install-plugins`가 있으면 **setup 스킬**의 절차를 먼저 따른다.
+
+**OpenAlex 키가 없으면(`openalex_api_key: false`) 문헌·트렌드 조사(0·2단계)에 들어가기 전에 꼭 한 번 묻는다.** 키가 없으면 같은 인터넷을 쓰는 사람과 하루 한도를 나눠 써서 조사 도중 막히기 쉽다. AskUserQuestion: "OpenAlex 무료 키를 받을까요? 이메일 주소를 OpenAlex에 보내면 확인 링크가 오고, 링크를 누르면 내 키가 켜집니다." — 받기 / 이미 키가 있음(붙여 넣기) / 이번엔 키 없이(Crossref로 대신). 받기를 고르면 이메일 주소를 사용자에게 직접 받아 setup 스킬 3번대로 요청한다. 동의 없이 이메일을 보내지 않고, 한 번 "키 없이"를 고르면 그 연구 폴더의 `진행상태.md`에 적어 다시 묻지 않는다.
+
+그 밖의 선택 항목(KCI 키, 한글 보안 모듈)은 한 줄로 알리고 넘어간다.
 
 ## 지킬 원칙
 

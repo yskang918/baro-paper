@@ -245,6 +245,10 @@ def main():
         out({"ok": True, "saved": CONF, "note": "키는 이 컴퓨터의 설정 파일에만 저장됩니다."})
     elif cmd == "request-openalex-key":
         email = sys.argv[2].strip()
+        import re
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+            out({"ok": False, "message": "이메일 주소 형식이 아닙니다."})
+            return
         req = urllib.request.Request("https://api.openalex.org/api-keys", data=json.dumps({"email": email}).encode(),
                                      headers={"Content-Type": "application/json", "User-Agent": "baro-paper"}, method="POST")
         try:
