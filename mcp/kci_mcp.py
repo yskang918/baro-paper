@@ -14,13 +14,14 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
 SERVER_NAME = "baro-scholar"
-SERVER_VERSION = "0.2.0"
-UA = "baro-paper/0.1 (academic research assistant)"
+SERVER_VERSION = "0.3.0"
+UA = "baro-paper/0.2 (academic research assistant)"
 KCI_URL = "https://open.kci.go.kr/po/openapi/openApiSearch.kci"
 CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".baro-paper", "config.json")
 
@@ -37,11 +38,57 @@ def kci_key():
     return os.environ.get("KCI_API_KEY") or load_config().get("kci_api_key") or ""
 
 
-def http_get(url, params, timeout=25):
+CACHE_DIR = os.path.join(os.path.expanduser("~"), ".baro-paper", "cache")
+CACHE_DAYS = 7
+
+
+class LimitError(Exception):
+    pass
+
+
+OPENALEX_LIMIT_MSG = ("OpenAlex 하루 무료 한도를 다 썼습니다. 키가 없으면 같은 인터넷(학교·집 공유기)을 쓰는 사람 모두가 "
+                      "작은 한도를 나눠 쓰고, 한국 시간 오전 9시에 다시 채워집니다. https://openalex.org 에서 무료 계정을 만들고 "
+                      "API 키를 받아 /baro-paper:setup 에서 등록하면 개인 한도로 씁니다. 그동안은 crossref_search 를 쓰세요.")
+
+
+def http_get(url, params, timeout=25, headers=None, cache=True):
+    import hashlib
+    import time
     q = urllib.parse.urlencode({k: v for k, v in params.items() if v not in (None, "")})
-    req = urllib.request.Request(url + "?" + q, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read()
+    full = url + ("?" + q if q else "")
+    safe_key = re.sub(r"(api_key|key)=[^&]+", r"\1=*", full)  # 키는 캐시 이름에 넣지 않음
+    cpath = os.path.join(CACHE_DIR, hashlib.sha1((safe_key + str(headers)).encode()).hexdigest() + ".bin")
+    if cache and os.path.exists(cpath) and time.time() - os.path.getmtime(cpath) < CACHE_DAYS * 86400:
+        with open(cpath, "rb") as f:
+            return f.read()
+    h = {"User-Agent": UA, **(headers or {})}
+    last = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(full, headers=h), timeout=timeout) as r:
+                data = r.read()
+            if cache:
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                with open(cpath, "wb") as f:
+                    f.write(data)
+            return data
+        except urllib.error.HTTPError as e:
+            last = e
+            if e.code == 429:
+                body = e.read()[:400].decode("utf-8", "ignore")
+                wait = e.headers.get("Retry-After", "")
+                if "openalex" in url and ("budget" in body.lower() or (wait.isdigit() and int(wait) > 60)):
+                    raise LimitError(OPENALEX_LIMIT_MSG)
+                time.sleep(min(int(wait) if wait.isdigit() else 2 ** attempt * 2, 20))
+                continue
+            if e.code >= 500:
+                time.sleep(2 ** attempt)
+                continue
+            raise
+        except urllib.error.URLError as e:
+            last = e
+            time.sleep(2 ** attempt)
+    raise last
 
 
 def norm(s):
@@ -149,10 +196,7 @@ def openalex_search(args):
         filters.append(f"type:{args['type']}")
     p = {"search": args["query"], "per-page": min(int(args.get("count", 20)), 50),
          "filter": ",".join(filters) or None, "sort": args.get("sort")}
-    mail = load_config().get("contact_email")
-    if mail:
-        p["mailto"] = mail
-    d = json.loads(http_get("https://api.openalex.org/works", p))
+    d = _oa(p)
     out = []
     for w in d.get("results", []):
         src = ((w.get("primary_location") or {}).get("source") or {})
@@ -182,9 +226,12 @@ def _oa_filter(query, precise=True, country=None, extra=None):
 
 
 def _oa(params):
-    mail = load_config().get("contact_email")
-    if mail:
-        params["mailto"] = mail
+    c = load_config()
+    key = os.environ.get("OPENALEX_API_KEY") or c.get("openalex_api_key")
+    if key:
+        params["api_key"] = key
+    if c.get("contact_email"):
+        params["mailto"] = c["contact_email"]
     return json.loads(http_get("https://api.openalex.org/works", params))
 
 
@@ -263,11 +310,54 @@ def crossref_search(title, year=None, rows=5):
     return out
 
 
+def crossref_tool(args):
+    recs = crossref_search(args["query"], args.get("year"), min(int(args.get("count", 10)), 30))
+    return {"total": len(recs), "records": recs,
+            "note": "Crossref 검색(키 불필요). OpenAlex 한도에 걸렸을 때 대신 쓴다. 국내 DOI 일부는 Crossref에 없다."}
+
+
+def doi_lookup(doi):
+    """doi.org를 거쳐 등록 기관(Crossref·KISTI 등) 상관없이 서지를 받는다."""
+    d = doi.strip()
+    for pre in ("https://doi.org/", "http://doi.org/", "http://dx.doi.org/", "doi:"):
+        if d.lower().startswith(pre):
+            d = d[len(pre):]
+    m = json.loads(http_get("https://doi.org/" + urllib.parse.quote(d, safe="/"), {},
+                            headers={"Accept": "application/vnd.citationstyles.csl+json"}))
+    y = ((m.get("issued") or {}).get("date-parts") or [[None]])[0][0]
+    ct = m.get("container-title", "")
+    return {"doi": d, "title": m.get("title", ""), "year": y,
+            "journal": ct if isinstance(ct, str) else (ct or [""])[0],
+            "publisher": m.get("publisher", ""),
+            "authors": [" ".join(x for x in (a.get("given"), a.get("family")) if x) for a in m.get("author", [])][:6],
+            "source": "doi.org"}
+
+
 def verify_reference(args):
     title = args["title"]
     year = args.get("year")
     author = args.get("author", "")
     cands, notes = [], []
+    if args.get("doi"):
+        try:
+            rec = doi_lookup(args["doi"])
+            ok_year = not year or not rec["year"] or abs(int(rec["year"]) - int(year)) <= 1
+            sim = similarity(title, rec["title"])
+            ko_vs_en = bool(re.search(r"[가-힣]", title)) and not re.search(r"[가-힣]", rec["title"] or "")
+            if ok_year and sim >= 0.6:
+                verdict = "확인됨(DOI)"
+            elif ok_year and ko_vs_en and rec["title"]:
+                verdict = "확인됨(DOI·연도 일치, 등록 제목은 영문 — 같은 논문인지 제목 뜻을 한 번 대조)"
+            elif ok_year:
+                verdict = "DOI 있음·연도 일치 — 등록 제목이 다른 언어이거나 다름(사람이 제목 대조)"
+            else:
+                verdict = "DOI 있음 — 연도가 다름(사람이 확인 필요)"
+            return {"verdict": verdict, "best_score": round(sim, 3), "best_match": rec, "others": [],
+                    "notes": ["doi.org 등록 서지와 대조. 국내 학술지는 영문 제목으로 등록된 경우가 많다."]}
+        except urllib.error.HTTPError as e:
+            notes.append(f"DOI 조회 실패(HTTP {e.code}): DOI가 틀렸거나 등록되지 않음")
+        except Exception as e:
+            notes.append(f"DOI 조회 실패: {e}")
     if kci_key():
         try:
             cands += kci_search({"title": title, "count": 10}).get("records", [])
@@ -277,6 +367,8 @@ def verify_reference(args):
         notes.append("KCI 키 없음: KCI는 확인하지 않음")
     try:
         cands += openalex_search({"query": title, "count": 10}).get("records", [])
+    except LimitError:
+        notes.append("OpenAlex 한도 초과: 이번에는 Crossref·DOI로만 확인함(OpenAlex API 키를 등록하면 해결)")
     except Exception as e:
         notes.append(f"OpenAlex 확인 실패: {e}")
     try:
@@ -299,6 +391,8 @@ def verify_reference(args):
         verdict = "비슷한 논문 있음(사람이 확인 필요)"
     else:
         verdict = "찾지 못함(인용 전 원문 확인 필요)"
+        if re.search(r"[가-힣]", title):
+            notes.append("국문 제목은 해외 DB에 영문 제목으로만 있는 경우가 많다. DOI를 넣어 다시 확인하거나 KCI 키를 등록하라.")
     return {"verdict": verdict, "best_score": best[0], "best_match": best[1],
             "others": [dict(score=s, **{k: c.get(k) for k in ("title", "year", "journal", "doi", "source")}) for s, c in scored[1:4]],
             "notes": notes}
@@ -319,7 +413,7 @@ TOOLS = {
     "kci_article": (kci_article, "KCI 논문 한 편의 상세 정보(초록·키워드·피인용 등). KCI API 키 필요.", {
         "type": "object", "required": ["kci_id"],
         "properties": {"kci_id": {"type": "string", "description": "KCI 논문 제어번호 예: ART002358582"}}}),
-    "openalex_search": (openalex_search, "OpenAlex 학술 검색(키 불필요). 해외 논문과 일부 국내 학술지. 한국어 검색어도 된다.", {
+    "openalex_search": (openalex_search, "OpenAlex 학술 검색(키 없으면 공용 하루 한도, 키 등록 권장). 해외 논문과 일부 국내 학술지. 한국어 검색어도 된다.", {
         "type": "object", "required": ["query"],
         "properties": {
             "query": {"type": "string"}, "from_year": {"type": "integer"}, "to_year": {"type": "integer"},
@@ -342,9 +436,13 @@ TOOLS = {
         "type": "object", "required": ["title"],
         "properties": {"title": {"type": "string"}, "keyword": {"type": "string"},
                        "from_year": {"type": "integer", "default": 2015}, "to_year": {"type": "integer", "default": 2026}}}),
-    "verify_reference": (verify_reference, "참고문헌이 실제로 있는지 KCI·OpenAlex·Crossref에서 확인. 인용하기 전에 반드시 쓴다.", {
+    "crossref_search": (crossref_tool, "Crossref 검색(키 불필요). OpenAlex 한도에 걸렸을 때나 DOI를 찾을 때.", {
+        "type": "object", "required": ["query"],
+        "properties": {"query": {"type": "string"}, "year": {"type": "integer"}, "count": {"type": "integer", "default": 10}}}),
+    "verify_reference": (verify_reference, "참고문헌이 실제로 있는지 확인. DOI가 있으면 꼭 넣는다(국문 논문도 doi.org로 확인됨). 없으면 KCI·OpenAlex·Crossref 제목 대조. 인용하기 전에 반드시 쓴다.", {
         "type": "object", "required": ["title"],
         "properties": {"title": {"type": "string"}, "year": {"type": "integer"},
+                       "doi": {"type": "string", "description": "예: 10.18108/jeer.2025.28.6.58"},
                        "author": {"type": "string", "description": "제1저자 이름(선택)"}}}),
 }
 
@@ -370,6 +468,8 @@ def handle(msg):
             res = TOOLS[name][0](args)
             is_err = isinstance(res, dict) and "error" in res
             text = json.dumps(res, ensure_ascii=False, indent=1)
+        except LimitError as e:
+            is_err, text = True, str(e)
         except Exception as e:
             is_err, text = True, f"{name} 실행 오류: {type(e).__name__}: {e}"
         return {"jsonrpc": "2.0", "id": mid, "result": {"content": [{"type": "text", "text": text}], "isError": is_err}}

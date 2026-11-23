@@ -7,6 +7,8 @@
   python setup.py install-hancom        한글 자동화 보안 모듈 설치(Windows+한글, 한컴 공식 저장소에서 받음)
   python setup.py set-kci-key KEY       KCI Open API 키 저장(~/.baro-paper/config.json)
   python setup.py set-email EMAIL       OpenAlex 예의 요청용 연락처(선택)
+  python setup.py request-openalex-key EMAIL  OpenAlex 무료 개인 키 요청(이메일로 확인 링크가 옴, 사용자 동의 후)
+  python setup.py set-openalex-key KEY  OpenAlex 키 저장
 """
 import io
 import json
@@ -131,6 +133,7 @@ def check():
         "plugin_check_error": err or None,
         "hancom": hancom_status(),
         "kci_api_key": bool(os.environ.get("KCI_API_KEY") or conf.get("kci_api_key")),
+        "openalex_api_key": bool(os.environ.get("OPENALEX_API_KEY") or conf.get("openalex_api_key")),
         "config_path": CONF,
         "git": shutil.which("git") is not None,
         "python_command_for_mcp": shutil.which("python") is not None,
@@ -146,6 +149,8 @@ def check():
         todo.append("install-plugins")
     if res["hancom"].get("hangul") and not res["hancom"].get("module"):
         todo.append("install-hancom(선택: 한글로 쪽 그림 대조)")
+    if not res["openalex_api_key"]:
+        todo.append("OpenAlex 키(권장: 없으면 같은 인터넷을 쓰는 사람과 하루 한도를 나눠 써서 조사 중 막힐 수 있음)")
     if not res["kci_api_key"]:
         todo.append("set-kci-key(선택: 없으면 OpenAlex로 대신)")
     res["todo"] = todo
@@ -238,6 +243,23 @@ def main():
     elif cmd == "set-kci-key":
         c = load_conf(); c["kci_api_key"] = sys.argv[2].strip(); save_conf(c)
         out({"ok": True, "saved": CONF, "note": "키는 이 컴퓨터의 설정 파일에만 저장됩니다."})
+    elif cmd == "request-openalex-key":
+        email = sys.argv[2].strip()
+        req = urllib.request.Request("https://api.openalex.org/api-keys", data=json.dumps({"email": email}).encode(),
+                                     headers={"Content-Type": "application/json", "User-Agent": "baro-paper"}, method="POST")
+        try:
+            body = json.loads(urllib.request.urlopen(req, timeout=60).read() or b"{}")
+        except Exception as e:
+            out({"ok": False, "message": f"요청 실패: {e}. https://help.openalex.org/api/authentication/ 에서 직접 받으세요."})
+            return
+        key = body.get("api_key") or body.get("key") or (body.get("data") or {}).get("api_key") if isinstance(body, dict) else None
+        if key:
+            c = load_conf(); c["openalex_api_key"] = key; save_conf(c)
+        out({"ok": True, "saved_key": bool(key), "response_keys": list(body)[:10] if isinstance(body, dict) else None,
+             "next": "받은 메일의 링크를 누르면 키가 켜집니다. 키가 저장되지 않았으면 메일에 적힌 키를 set-openalex-key로 넣으세요."})
+    elif cmd == "set-openalex-key":
+        c = load_conf(); c["openalex_api_key"] = sys.argv[2].strip(); save_conf(c)
+        out({"ok": True, "saved": CONF, "note": "키는 이 컴퓨터의 설정 파일에만 저장됩니다. Claude Code를 다시 시작하면 적용됩니다."})
     elif cmd == "set-email":
         c = load_conf(); c["contact_email"] = sys.argv[2].strip(); save_conf(c)
         out({"ok": True, "saved": CONF})

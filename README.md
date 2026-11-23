@@ -65,6 +65,7 @@ Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 
 ## 선택 설정
 
+- **OpenAlex 키**(강력 권장, 무료): 키가 없으면 같은 인터넷을 쓰는 사람 모두가 작은 하루 한도를 나눠 써서 조사 도중 막힐 수 있습니다. `/baro-paper:setup`에서 동의하면 이메일로 무료 키를 요청해 줍니다(메일의 링크를 누르면 켜짐). 직접 받기: https://help.openalex.org/api/authentication/
 - **KCI API 키**(국내 논문 검색 권장): https://open.kci.go.kr 에서 OPEN API 키를 신청하고 `/baro-paper:setup`에서 붙여 넣으면 `~/.baro-paper/config.json`에 저장됩니다. 없으면 OpenAlex로 국내 학술지 일부를 찾습니다.
 - **한글 보안 모듈**(Windows + 한글, 쪽 그림 대조용): 한글이 자동화로 파일을 열 때 뜨는 허용 창을 생략해 주는 한컴 공식 모듈입니다. 보안 설정이라 사용자가 직접 실행합니다. Claude Code 입력창에 아래처럼 입력합니다(경로는 setup이 알려 줌).
   ```
