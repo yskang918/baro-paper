@@ -20,7 +20,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 SERVER_NAME = "baro-scholar"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.3.1"
 UA = "baro-paper/0.2 (academic research assistant)"
 KCI_URL = "https://open.kci.go.kr/po/openapi/openApiSearch.kci"
 CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".baro-paper", "config.json")

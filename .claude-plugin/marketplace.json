@@ -10,7 +10,7 @@
       "name": "baro-paper",
       "source": "./",
       "description": "연구 아이디어 → 문헌 → 판단 → 집필·분석 → 학교 양식 hwpx",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "license": "CC-BY-NC-4.0"
     }
   ]
