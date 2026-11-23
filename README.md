@@ -1,6 +1,6 @@
 # 바로논문 (baro-paper)
 
-연구 아이디어 하나로 **문헌 조사 → 연구 필요성·근거·연구 세팅 → 할지 말지 판단 → 계획서 → 집필·분석·시각화·심사 → 학교 양식 그대로 한글(hwpx) 파일**까지 이어 주는 Claude Code 플러그인입니다. 연구 시간을 아끼기 위한 도구이고, 결정은 연구자가 합니다. 단계마다 결과 파일을 남기고, 결정할 곳에서 멈추고 묻습니다.
+관심 분야의 **연구 트렌드와 빈틈을 함께 브레인스토밍**하거나 연구 아이디어 하나로 시작해 **문헌 조사 → 연구 필요성·근거·연구 세팅 → 할지 말지 판단 → 계획서 → 집필·분석·시각화·심사 → 학교 양식 그대로 한글(hwpx) 파일**까지 이어 주는 Claude Code 플러그인입니다. 연구 시간을 아끼기 위한 도구이고, 결정은 연구자가 합니다. 단계마다 결과 파일을 남기고, 결정할 곳에서 멈추고 묻습니다.
 
 > 개인 연구용·비상업 도구입니다(CC BY-NC 4.0). 설문 응답·데이터·논문을 지어내지 않습니다. 인용 문헌은 학술 DB에서 실제로 있는지 확인합니다.
 
@@ -25,6 +25,7 @@ Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 
 | 단계 | 하는 일 | 결과 파일 |
 |---|---|---|
+| 0 브레인스토밍 | 분야의 연도별 논문 수·뜨는 주제·핵심 논문, 연구 흐름, 빈틈(대상·방법·이론·분야 간) → 아이디어 후보 5~10개를 함께 고르기 | `연구/_아이디어탐색_<분야>/` |
 | 1 아이디어 | 질문으로 대상·기간·자료를 확인 | `00_아이디어.md` |
 | 2 문헌 | KCI·OpenAlex 검색 + insane-research 넓은 조사, 모든 문헌 실제 존재 확인 | `01_문헌/` |
 | 3 연구 설계 | 필요성(근거)·연구문제·방법·일정·윤리 | `02_연구설계.md` |
@@ -42,6 +43,7 @@ Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 | 명령 | 용도 |
 |---|---|
 | `/baro-paper:start` | 처음부터 또는 이어서 |
+| `/baro-paper:ideate` | 트렌드·빈틈으로 연구 아이디어 브레인스토밍 |
 | `/baro-paper:setup` | 세팅 점검·설치, KCI 키 등록 |
 | `/baro-paper:idea-review` | 할지 말지 판단 보고서만 |
 | `/baro-paper:thesis-format` | 학교 양식으로 hwpx 만들기만 |
@@ -82,7 +84,7 @@ Claude Code를 다시 시작한 뒤 이렇게 시작합니다.
 | [한컴 보안 모듈](https://github.com/hancom-io/devcenter-archive) | 한글 자동화(선택) | 한컴 배포 조건 |
 | markitdown, pandas, scipy, statsmodels, matplotlib, PyMuPDF | 문서 읽기·분석·그림 | 각 라이선스 |
 
-설계 참고: PaperOrchestra(Google Research)의 문헌 확인·개요 우선 방식, AI-Scientist(Sakana AI)의 새로움 판정 방식(코드는 쓰지 않음).
+설계 참고: Stanford NLP AI-Researcher(MIT)의 아이디어 생성→중복 합치기→순위 흐름, Chain-of-Ideas(DAMO-NLP-SG, Apache-2.0)의 연구 흐름 사슬, research-gap-finder(MIT)의 빈틈 네 갈래, PaperOrchestra(Google Research)의 문헌 확인·개요 우선 방식, AI-Scientist(Sakana AI)의 새로움 판정 방식(코드는 쓰지 않음).
 
 ## 라이선스
 

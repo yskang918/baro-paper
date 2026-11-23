@@ -19,7 +19,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 SERVER_NAME = "baro-scholar"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.2.0"
 UA = "baro-paper/0.1 (academic research assistant)"
 KCI_URL = "https://open.kci.go.kr/po/openapi/openApiSearch.kci"
 CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".baro-paper", "config.json")
@@ -172,6 +172,81 @@ def openalex_search(args):
     return {"total": d.get("meta", {}).get("count", len(out)), "records": out}
 
 
+# ---------------- 트렌드 ----------------
+def _oa_filter(query, precise=True, country=None, extra=None):
+    f = [f'title_and_abstract.search:{query}' if precise else None]
+    if country:
+        f.append(f"authorships.countries:{country.upper()}")
+    f += extra or []
+    return ",".join(x for x in f if x)
+
+
+def _oa(params):
+    mail = load_config().get("contact_email")
+    if mail:
+        params["mailto"] = mail
+    return json.loads(http_get("https://api.openalex.org/works", params))
+
+
+def openalex_trend(args):
+    """연도별 논문 수. 정확한 구문은 query를 큰따옴표로 감싼다."""
+    q = args["query"]
+    fy = int(args.get("from_year", 2015))
+    ty = args.get("to_year")
+    extra = [f"from_publication_date:{fy}-01-01"] + ([f"to_publication_date:{int(ty)}-12-31"] if ty else [])
+    res = {}
+    for label, country in (("전체", None), ("한국 저자", "KR")) if args.get("compare_korea", True) else (("전체", None),):
+        p = {"filter": _oa_filter(q, args.get("precise", True), country, extra), "group_by": "publication_year"}
+        if not args.get("precise", True):
+            p["search"] = q
+        d = _oa(p)
+        res[label] = {g["key"]: g["count"] for g in sorted(d.get("group_by", []), key=lambda g: g["key"]) if g["key"].isdigit()}
+    import datetime
+    this_year = str(datetime.date.today().year)
+    return {"query": q, "counts_by_year": res,
+            "note": f"{this_year}년은 아직 진행 중이라 적게 또는 미리 등록된 논문 때문에 많게 나올 수 있다. OpenAlex 색인 기준이며 국내 학술지는 일부만 들어 있다."}
+
+
+def openalex_topics(args):
+    """최근 기간과 이전 기간의 주제 비중을 비교해 뜨는 주제를 찾는다."""
+    q = args["query"]
+    rf = int(args.get("recent_from", 2024))
+    pf, pt = int(args.get("past_from", rf - 5)), int(args.get("past_to", rf - 2))
+    def grp(extra):
+        p = {"filter": _oa_filter(q, args.get("precise", True), args.get("country"), extra), "group_by": args.get("by", "topics.id")}
+        if not args.get("precise", True):
+            p["search"] = q
+        return _oa(p).get("group_by", [])
+    new = grp([f"from_publication_date:{rf}-01-01"])
+    old = {g["key"]: g["count"] for g in grp([f"from_publication_date:{pf}-01-01", f"to_publication_date:{pt}-12-31"])}
+    tn, to = sum(g["count"] for g in new) or 1, sum(old.values()) or 1
+    rows = []
+    for g in new:
+        o = old.get(g["key"], 0)
+        rows.append({"topic": g.get("key_display_name", g["key"]), "recent": g["count"], "past": o,
+                     "growth_ratio": round((g["count"] / tn) / ((o + 1) / to), 2)})
+    min_n = int(args.get("min_recent", 5))
+    rising = sorted([r for r in rows if r["recent"] >= min_n], key=lambda r: -r["growth_ratio"])[: int(args.get("top", 15))]
+    biggest = sorted(rows, key=lambda r: -r["recent"])[:10]
+    return {"query": q, "recent": f"{rf}~", "past": f"{pf}~{pt}", "rising": rising, "largest_recent": biggest,
+            "note": "growth_ratio = 최근 비중 / 이전 비중. 1보다 크면 비중이 커진 주제. 주제 분류는 OpenAlex 자동 분류다."}
+
+
+def kci_trend(args):
+    key = kci_key()
+    if not key:
+        return {"error": NO_KEY}
+    fy, ty = int(args.get("from_year", 2015)), int(args.get("to_year", 2026))
+    if ty - fy > 15:
+        return {"error": "한 번에 16년까지만 셉니다."}
+    out = {}
+    for y in range(fy, ty + 1):
+        r = parse_kci(http_get(KCI_URL, {"key": key, "apiCode": "articleSearch", "title": args["title"],
+                                         "keyword": args.get("keyword"), "dateFrom": f"{y}01", "dateTo": f"{y}12", "displayCount": 1}))
+        out[str(y)] = int(r["total"]) if str(r["total"]).isdigit() else r["total"]
+    return {"title_query": args["title"], "counts_by_year": out, "note": "KCI 제목 검색 기준 연도별 논문 수"}
+
+
 # ---------------- Crossref ----------------
 def crossref_search(title, year=None, rows=5):
     p = {"query.bibliographic": title, "rows": rows}
@@ -251,6 +326,22 @@ TOOLS = {
             "count": {"type": "integer", "default": 20, "description": "최대 50"},
             "type": {"type": "string", "description": "예: article, review, dissertation"},
             "sort": {"type": "string", "description": "예: cited_by_count:desc, publication_year:desc"}}}),
+    "openalex_trend": (openalex_trend, "연도별 논문 수(전체·한국 저자). 분야·주제가 커지는지 볼 때. 정확한 구문은 큰따옴표: '\"cognitive offloading\"'.", {
+        "type": "object", "required": ["query"],
+        "properties": {"query": {"type": "string"}, "from_year": {"type": "integer", "default": 2015}, "to_year": {"type": "integer"},
+                       "precise": {"type": "boolean", "default": True, "description": "제목·초록에서만 찾기(정확). false면 넓은 검색"},
+                       "compare_korea": {"type": "boolean", "default": True}}}),
+    "openalex_topics": (openalex_topics, "최근 기간과 이전 기간의 주제 비중을 비교해 '뜨는 주제'를 찾는다. 연구 트렌드 지도용.", {
+        "type": "object", "required": ["query"],
+        "properties": {"query": {"type": "string"}, "recent_from": {"type": "integer", "default": 2024},
+                       "past_from": {"type": "integer"}, "past_to": {"type": "integer"},
+                       "by": {"type": "string", "default": "topics.id", "description": "topics.id 또는 keywords.id"},
+                       "country": {"type": "string", "description": "예: KR"}, "precise": {"type": "boolean", "default": True},
+                       "top": {"type": "integer", "default": 15}, "min_recent": {"type": "integer", "default": 5}}}),
+    "kci_trend": (kci_trend, "KCI 국내 논문의 연도별 수(제목 검색). KCI API 키 필요.", {
+        "type": "object", "required": ["title"],
+        "properties": {"title": {"type": "string"}, "keyword": {"type": "string"},
+                       "from_year": {"type": "integer", "default": 2015}, "to_year": {"type": "integer", "default": 2026}}}),
     "verify_reference": (verify_reference, "참고문헌이 실제로 있는지 KCI·OpenAlex·Crossref에서 확인. 인용하기 전에 반드시 쓴다.", {
         "type": "object", "required": ["title"],
         "properties": {"title": {"type": "string"}, "year": {"type": "integer"},
